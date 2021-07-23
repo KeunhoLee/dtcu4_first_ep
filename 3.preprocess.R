@@ -3,8 +3,10 @@ library("tidyr")
 library("dplyr")
 library("stringr")
 library("Elbird")
+library("lubridate")
 
-DATA_ROOT <- './data'
+DATA_ROOT <- "./data"
+SOURCE_NAME <- "twitter"
 
 # useful ------------------------------------------------------------------
 get_latest_data <- function(source, data_root=DATA_ROOT){
@@ -17,15 +19,6 @@ get_latest_data <- function(source, data_root=DATA_ROOT){
   
 }
 
-# Twitter -----------------------------------------------------------------
-get_text_twitter <- function(twitter_df){
-
-  twitter_df %>%
-    filter( created_at > as_datetime("2021-07-11 13:40:00") ) %>%
-    mutate(id=row_number()) %>%
-    select( id, text )
-}
-
 rmURLs <- function(x) { gsub("(f|ht)tp(s?)://\\S+", "", x, perl=T) }
 rmTag <- function(x) { gsub("(@[A-Za-z가-힣0-9_]+)", "", x, perl=T) }
 rmEmoji <- function(x) { gsub("[\U00010000-\U0010FFFF]+", "", x, perl=T) }
@@ -35,13 +28,13 @@ preprocess_text <- function(text_df) {
   
   text_df %>%
     mutate(text=rmURLs(text),
-              text=rmTag(text),
-              text=rmEmoji(text),
-              text=toSpace(text, "\n"),
-              text=toSpace(text, "[^가-힣A-Za-z]"),
-              text=gsub(" +", " ", text),
-              text=trimws(text),
-              text=toupper(text))
+           text=rmTag(text),
+           text=rmEmoji(text),
+           text=toSpace(text, "\n"),
+           text=toSpace(text, "[^가-힣A-Za-z]"),
+           text=gsub(" +", " ", text),
+           text=trimws(text),
+           text=toupper(text))
   
 }
 
@@ -57,15 +50,36 @@ tokenize_text <- function(text_df) {
   
 }
 
-# -------------------------------------------------------------------------
-twitter_text <- readRDS(get_latest_data("twitter_")) %>%
-  get_text_twitter()
+# Twitter -----------------------------------------------------------------
+get_text <- function(df, source_name){
 
-twitter_text <- preprocess_text(twitter_text)
+  if (source_name == "twitter") {
+    
+    df %>%
+      filter( created_at > as_datetime("2021-07-18 13:40:00") ) %>%
+      mutate(id=row_number()) %>%
+      select( id, text )
+    
+  } else if (source_name == "youtube") {
+    
+    df %>% 
+      select(reply_comment) %>%
+      mutate(id=row_number()) %>%
+      rename(text=reply_comment)
+    
+  }
+
+}
+
+# -------------------------------------------------------------------------
+texts <- readRDS(get_latest_data(SOURCE_NAME)) %>%
+  get_text(SOURCE_NAME)
+
+texts <- preprocess_text(texts)
 
 read_user_dict("./user_dict.txt")
 
-twitter_word <- tokenize_text(twitter_text)
+words <- tokenize_text(texts)
 
 target_morph <- c("nng", "nnp", "va", "xr", "sl", "@")
 
@@ -78,7 +92,7 @@ for (i in 1:dim(synonym)[1]){
   
 }
 
-processed_word <- twitter_word %>%
+processed_word <- words %>%
   filter(morph %in% target_morph,
          word!="같") %>%
   mutate(word=ifelse(morph=="va", paste0(word,"다"), word),
@@ -91,7 +105,5 @@ processed_word <- twitter_word %>%
          n>10) %>%
   rename(freq=n) %>%
   arrange(desc(freq))
-
-
 
 

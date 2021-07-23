@@ -1,23 +1,26 @@
-install.packages("widyr")
-install.packages("tidygraph")
-install.packages("ggraph")
-install.packages("showtext")
+# install.packages("widyr")
+# install.packages("tidygraph")
+# install.packages("ggraph")
+# install.packages("showtext")
 
 library("widyr")
 library("tidygraph")
 library("ggraph")
 library("showtext")
 
-twitter_text <- readRDS(get_latest_data("twitter_")) %>%
-  get_text_twitter()
+SOURCE_NAME <- "youtube"
 
-twitter_text <- preprocess_text(twitter_text)
+texts <- readRDS(get_latest_data(SOURCE_NAME)) %>%
+  get_text(SOURCE_NAME)
 
-twitter_word <- tokenize_text(twitter_text)
+texts <- preprocess_text(texts)
+
+words <- tokenize_text(texts)
+# -------------------------------------------------------------------------
 
 target_morph <- c("nng", "nnp", "va", "xr", "sl", "@")
 
-pair <- twitter_word %>%
+pair <- words %>%
   mutate(word=ifelse(morph=="va", paste0(word,"다"), word),
                        word=ifelse(word %in% names(synonym_dict),
                                    synonym_dict[word],
@@ -31,29 +34,6 @@ pair <- twitter_word %>%
                  feature=id,
                  sort=T)
 
-graph_component <- pair %>%
-  filter(n>=5) %>%
-  as_tbl_graph()
-
-ggraph(graph_component) +
-  geom_edge_link() + 
-  geom_node_point() + 
-  geom_node_text(aes(label=name))
-
-font_add_google(name="Nanum Gothic",
-                family="naumgothic")  
-
-showtext_auto()
-
-ggraph(graph_component) +
-  geom_edge_link(color="gray50",
-                 size=5) + 
-  geom_node_point(color="lightcoral",
-                  size=5) + 
-  geom_node_text(aes(label=name),
-                 repel=TRUE,
-                 size=5,
-                 family="naumgothic")
 
 # 관련없는 키워드 삭제
 trash <- c("LT", "GT",
@@ -65,7 +45,7 @@ trash <- c("LT", "GT",
 
 set.seed(1)
 graph_component <- pair %>%
-  filter(n>5,
+  filter(n>7,
          !((item1 %in% trash) & (item1 %in% trash))) %>%
   as_tbl_graph(directed=FALSE) %>%
   mutate(centrality=centrality_degree(),

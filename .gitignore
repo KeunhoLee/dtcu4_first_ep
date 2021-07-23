@@ -1,6 +1,12 @@
-# Token
-./token/
-./CONF_*
+# Data
+data/
+*.rds
+*_files/
+
+# Token & Old
+token/
+CONF_*
+old
 
 # History files
 .Rhistory

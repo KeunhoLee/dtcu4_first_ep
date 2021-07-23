@@ -2,6 +2,8 @@ library(wordcloud2)
 library(webshot)
 library(htmlwidgets)
 
+SOURCE_NAME <- "twitter"
+
 # preprocess.R 먼저 실행
 processed_word$freq[1] <- min(processed_word$freq[1],
                               processed_word$freq[2]*2)
@@ -23,4 +25,4 @@ wc <- wordcloud2(
   shuffle=FALSE
 )
 
-saveWidget(wc,"wordcloud.html", selfcontained = F)
+saveWidget(wc, str_interp("${SOURCE_NAME}_wordcloud.html"), selfcontained = F)
